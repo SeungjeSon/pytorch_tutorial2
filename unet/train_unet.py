@@ -131,3 +131,43 @@ class UNet(nn.Module):
         x = self.fc(dec1_1)
 
         return x
+
+
+## 데이터 로더 구현
+class Dataset(torch.utils.data.Dataset):
+    def __init__(self, data_dir, transform=None):
+        self.data_dir = data_dir
+        self.transform=transform
+
+        lst_data = os.listdir(self.data_dir) # os함수 사용해서 dir에 있는 모든 파일 가져오기
+
+        lst_label = [f for f in lst_data if f.startswith('label')]
+        lst_input = [f for f in lst_data if f.startswith('input')]
+
+        lst_label.sort()
+        lst_input.sort()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
