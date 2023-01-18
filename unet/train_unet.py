@@ -218,22 +218,45 @@ class RandomFlip(object):
 
 
 
-## 데이터로드 확인
-transform = transforms.Compose([Nomalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])    #Compose는 여러가지 함수를 묶어주는 역할
-datasets = Dataset(os.path.join(data_dir, 'train'), transform=transform)
+# ## 데이터로드 확인
+# transform = transforms.Compose([Nomalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])    #Compose는 여러가지 함수를 묶어주는 역할
+# datasets = Dataset(os.path.join(data_dir, 'train'), transform=transform)
+#
+# data = datasets.__getitem__(0)
+#
+# input = data['input']
+# label = data['label']
+#
+# plt.subplot(1,2,1)
+# plt.imshow(input.squeeze())
+#
+# plt.subplot(1,2,2)
+# plt.imshow(label.squeeze())
+#
+# plt.show()
 
-data = datasets.__getitem__(0)
+## 네트워크 학습하기
+transform = transforms.Compose([Nomalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
 
-input = data['input']
-label = data['label']
+dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform)
+loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
 
-plt.subplot(1,2,1)
-plt.imshow(input.squeeze())
+dataset_val = Dataset(data_dir=os.path.join(data_dir, 'val'), transform=transform)
+loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=True, num_workers=8)
 
-plt.subplot(1,2,2)
-plt.imshow(label.squeeze())
+## 네트워크 생성
+net = UNet.to(device)
 
-plt.show()
+## 손실함수 정의하기
+fn_loss = nn.BCEWithLogitsLoss().to(device)
 
+## Optimizer 설정하기
+optim = torch.optim.Adam(net.parameters(), lr=lr)
 
+## 그밖에 variables 설정하기
+num_data_train = len(dataset_train)
+num_data_val = len(dataset_val)
+
+num_batch_train = np.ceil(num_data_train / batch_size)
+num_batch_val = np.ceil(num_data_val / batch_size)
 
