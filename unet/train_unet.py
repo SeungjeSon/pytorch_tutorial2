@@ -1,5 +1,7 @@
 ## import lib
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 import torch
@@ -147,27 +149,91 @@ class Dataset(torch.utils.data.Dataset):
         lst_label.sort()
         lst_input.sort()
 
+        self.lst_label = lst_label
+        self.lst_input = lst_input
+
+    def __len__(self):
+        return len(self.lst_label)
+
+    def __getitem__(self, index):
+        label = np.load(os.path.join(self.data_dir, self.lst_label[index]))
+        input = np.load(os.path.join(self.data_dir, self.lst_input[index]))
+
+        label = label/255.0
+        input = input/255.0
+
+        # 학습을 위해 데이터의 axis가 맞아야하고 이때 pytorch는 3axis가 필요. 3axis를 위해 np.newaxis를 사용
+        if label.ndim == 2:
+            label = label[:, :, np.newaxis]
+        if input.ndim == 2:
+            input = input[:, :, np.newaxis]
+
+        data = {'input': input, 'label': label}
+
+        if self.transform:
+            data = self.transform(data)
+
+        return data
+
+
+## 트렌스폼 구현
+class ToTensor(object):
+    def __call__(self, data):
+        label, input = data['label'], data['input']
+        # image의 numpy 차원 = (Y, X, Ch) // image의 tensor 차원 = (Ch, Y ,X)
+        label = label.transpose((2, 0, 1)).astype(np.float32)
+        input = input.transpose((2, 0, 1)).astype(np.float32)
+
+        data = {'label': torch.from_numpy(label), 'input': torch.from_numpy(input)}
+
+        return data
+
+class Nomalization(object):
+    def __init__(self, mean=0.5, std=0.5):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, data):
+        input, label = data['input'], data['label']
+        input = (input - self.mean) / self.std
+        data = {'label': label, 'input': input}
+
+        return data
+
+class RandomFlip(object):
+    def __call__(self, data):
+        input, label = data['input'], data['label']
+
+        if np.random.rand() > 0.5:
+            label = np.fliplr(label)
+            input = np.fliplr(input)
+
+        if np.random.rand() > 0.5:
+            label = np.flipud(label)
+            input = np.flipud(input)
+
+        data = {'label': label, 'input': input}
+
+        return data
 
 
 
+## 데이터로드 확인
+transform = transforms.Compose([Nomalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])    #Compose는 여러가지 함수를 묶어주는 역할
+datasets = Dataset(os.path.join(data_dir, 'train'), transform=transform)
 
+data = datasets.__getitem__(0)
 
+input = data['input']
+label = data['label']
 
+plt.subplot(1,2,1)
+plt.imshow(input.squeeze())
 
+plt.subplot(1,2,2)
+plt.imshow(label.squeeze())
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+plt.show()
 
 
 
