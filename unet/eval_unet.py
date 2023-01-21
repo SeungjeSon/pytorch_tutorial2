@@ -17,13 +17,14 @@ lr = 1e-3
 batch_size = 4
 num_epoch = 100
 
-data_dir = './datasets'
-ckpt_dir = './checkpoint'
-log_dir = './log'
+data_dir = '.\datasets'
+ckpt_dir = './unet/checkpoint'
+log_dir = './unet/log'
 result_dir = './results'
 
 if not os.path.exists(result_dir):
-    os.makedirs(result_dir)
+    os.makedirs(os.path.join(result_dir, 'png'))
+    os.makedirs(os.path.join(result_dir, 'numpy'))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
