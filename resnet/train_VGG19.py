@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
+import torchvision
 
 
 ## 트레이닝 파라미터 설정
@@ -55,12 +56,12 @@ class VGG19(nn.Module):
         self.conv4_4 = CBR2d(in_channel=512, out_channel=512)
         self.pool4_5 = nn.MaxPool2d(kernel_size=2)
 
-        self.fc1 = nn.Linear(4096, 2048)
+        self.fc1 = nn.Linear(512*2*2, 2048)
         self.fc2 = nn.Linear(2048, 1024)
         self.fc3 = nn.Linear(1024, 512)
         self.fc4 = nn.Linear(512, 256)
         self.fc5 = nn.Linear(256, 128)
-        self.fc6 = nn.Linear(256, 64)
+        self.fc6 = nn.Linear(128, 64)
         self.fc7 = nn.Linear(64, 10)
 
         self.dp = nn.Dropout2d(0.5)
@@ -68,48 +69,65 @@ class VGG19(nn.Module):
 
 
     def forward(self, x):
-        conv1_1 = self.conv1_1(x)
-        conv1_2 = self.conv1_2(conv1_1)
-        pool1_3 = self.pool1_3(conv1_2)
+        x = self.conv1_1(x)
+        x = self.conv1_2(x)
+        x = self.pool1_3(x)
 
-        conv2_1 = self.conv2_1(pool1_3)
-        conv2_2 = self.conv2_2(conv2_1)
-        pool2_3 = self.pool2_3(conv2_2)
-        dp1 = self.dp(pool2_3)
+        x = self.conv2_1(x)
+        x = self.conv2_2(x)
+        x = self.pool2_3(x)
+        x = self.dp(x)
 
-        conv3_1 = self.conv3_1(dp1)
-        conv3_2 = self.conv3_2(conv3_1)
-        conv3_3 = self.conv3_3(conv3_2)
-        conv3_4 = self.conv3_4(conv3_3)
-        pool3_5 = self.pool3_5(conv3_4)
-        dp2 = self.dp(pool3_5)
+        x = self.conv3_1(x)
+        x = self.conv3_2(x)
+        x = self.conv3_3(x)
+        x = self.conv3_4(x)
+        x = self.pool3_5(x)
+        x = self.dp(x)
 
-        conv4_1 = self.conv4_1(dp2)
-        conv4_2 = self.conv4_2(conv4_1)
-        conv4_3 = self.conv4_3(conv4_2)
-        conv4_4 = self.conv4_4(conv4_3)
-        pool4_5 = self.pool4_5(conv4_4)
-        dp3 = self.dp(pool4_5)
+        x = self.conv4_1(x)
+        x = self.conv4_2(x)
+        x = self.conv4_3(x)
+        x = self.conv4_4(x)
+        x = self.pool4_5(x)
+        x = self.dp(x)
 
-        fc0 = nn.Linear(torch.flatten(dp3, 1), 4096)
-        fc1 = self.fc1(fc0)
-        fc2 = self.fc2(fc1)
-        fc3 = self.fc3(fc2)
-        fc4 = self.fc4(fc3)
-        dp4 = self.dp(fc4)
-        fc5 = self.fc5(dp4)
-        fc6 = self.fc6(fc5)
-        x = self.fc7(fc6)
+        # print(x.shape)
+        x = x.view(-1, 512*2*2)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = self.dp(x)
+        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc6(x))
+        x = F.relu(self.fc7(x))
 
         return x
 
 
-## 네트워크 학습
+## 데이터셋 설정
 train_dataset = datasets.CIFAR10(root=os.path.join(data_dir, 'train'), train=True, download=True, transform=transforms.ToTensor())
 loader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
 tes_dataset = datasets.CIFAR10(root=os.path.join(data_dir, 'test'), train=False, download=True, transform=transforms.ToTensor())
 loader_test = DataLoader(tes_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+
+# ## 데이터셋 확인
+# def imshow(img):
+#     img = img/2 + 0.5
+#     npimg = img.numpy()
+#     plt.imshow(np.transpose(npimg, (1, 2, 0)))
+#     print("{0}\t{1}".format(npimg.shape, np.transpose(npimg, (1,2,0)).shape))
+#     plt.show()
+# dataiter = iter(loader_train)
+# images, labels = dataiter.next()
+#
+# for i, data in enumerate(loader_train, 0):
+#     inputs, labels = data
+#     labels = labels.to(device)
+#     print(labels)
+# imshow(torchvision.utils.make_grid(images))
 
 
 ## 네트워크 생성
@@ -120,4 +138,56 @@ fn_loss = nn.CrossEntropyLoss().to(device)
 
 ## optim 설정
 optim = torch.optim.Adam(vgg19.parameters(), lr=lr)
+
+## 네트워크 저장
+def save(ckpt_dir, net, optim, epoch):
+    if not os.path.exists(ckpt_dir):
+        os.makedirs(ckpt_dir)
+
+    torch.save({'net': net.state_dict(), 'optim': optim.state_dict()}, "./%s/model_epoch%d.pth" % (ckpt_dir, epoch))
+
+# 네트워크 불러오기
+def load(ckpt_dir, net, optim):
+    if not os.path.exists(ckpt_dir):
+        epoch = 0
+        return net, optim, epoch
+
+    ckpt_lst = os.listdir(ckpt_dir)
+    ckpt_lst.sort(key=lambda f: int(''.join(str.isdigit, f)))
+
+    dict_model = torch.load('./%s/%s' % (ckpt_dir, ckpt_lst[-1]))
+
+    net.load_state_dict(dict_model['net'])
+    optim.load_state_dict(dict_model['optim'])
+    epoch = int(ckpt_lst[-1].split('epoch')[1].split('.pth'[0]))
+
+    return net, optim, epoch
+
+## 네트워크 학습
+st_epoch = 0
+vgg19, optim, st_epoch = load(ckpt_dir=ckpt_dir, net=vgg19, optim=optim)
+
+for epoch in range(num_epoch):
+    vgg19.train()
+    running_loss = 0.0
+    loss_arr = []
+
+    for i, data in enumerate(loader_train, 0):
+        inputs, labels = data
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+
+        optim.zero_grad()
+
+        outputs = vgg19(inputs)
+        loss = fn_loss(outputs, labels)
+        loss.backward()
+        optim.step()
+
+        loss_arr += [loss.item()]
+
+        if i % 10 == 0:
+            print("Train: EPOCH %04d / %04d | BATCH %04d | Loss %.4f" %
+                  (epoch, num_epoch, i, np.mean(loss_arr)))
+
 
