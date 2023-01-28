@@ -189,5 +189,6 @@ for epoch in range(num_epoch):
         if i % 10 == 0:
             print("Train: EPOCH %04d / %04d | BATCH %04d | Loss %.4f" %
                   (epoch, num_epoch, i, np.mean(loss_arr)))
-
+    if epoch % 5 == 0:
+        save(ckpt_dir=ckpt_dir, net=vgg19, optim=optim, epoch=epoch)
 
