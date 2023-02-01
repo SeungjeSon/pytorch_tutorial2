@@ -165,7 +165,7 @@ def load(ckpt_dir, net, optim):
 
 ## 네트워크 학습
 st_epoch = 0
-vgg19, optim, st_epoch = load(ckpt_dir=ckpt_dir, net=vgg19, optim=optim)
+# vgg19, optim, st_epoch = load(ckpt_dir=ckpt_dir, net=vgg19, optim=optim)
 
 for epoch in range(num_epoch):
     vgg19.train()
