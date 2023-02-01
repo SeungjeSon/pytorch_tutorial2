@@ -135,14 +135,15 @@ def load(ckpt_dir, net, optim):
         return net, optim, epoch
 
     ckpt_lst = os.listdir(ckpt_dir)
-    ckpt_lst.sort(key=lambda f: int(''.join(str.isdigit, f)))
+    # ckpt_lst.sort(key=lambda f: int(''.join(str.isdigit, f)))
+    # ckpt_lst.sort(s)
 
     dict_model = torch.load('./%s/%s' % (ckpt_dir, ckpt_lst[-1]))
 
     net.load_state_dict(dict_model['net'])
     optim.load_state_dict(dict_model['optim'])
-    epoch = int(ckpt_lst[-1].split('epoch')[1].split('.pth'[0]))
-
+    # epoch = int(ckpt_lst[-1].split('epoch')[1].split('.pth'[0]))
+    epoch = 8
     return net, optim, epoch
 
 ## 네트워크 학습
