@@ -9,7 +9,7 @@ import os
 
 # parameters
 lr = 1e-3
-num_epoch = 10
+num_epoch = 2
 batch_size = 4
 
 # path
@@ -23,18 +23,13 @@ transform = transforms.Compose(
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 #데이터 불러오기, 학습여부  o
-trainset = torchvision.datasets.CIFAR10(root=os.path.join(data_dir, 'train'), train=True,
+trainset = torchvision.datasets.CIFAR10(root='./dataset/train', train=True,
                                         download=True, transform=transform)
 
 #학습용 셋은 섞어서 뽑기
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
-#데이터 불러오기, 학습여부  x
-testset = torchvision.datasets.CIFAR10(root=os.path.join(data_dir, 'test'), train=False,
-                                       download=True, transform=transform)
-#테스트 셋은 굳이 섞을 필요가 없음
-testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
-                                         shuffle=False, num_workers=0)
+
 #클래스들
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -143,7 +138,34 @@ class VGG19(nn.Module):
 
         return x
 
-net = VGG19()
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+
+        #input = 3, output = 6, kernal = 5
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        #kernal = 2, stride = 2, padding = 0 (default)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        #input feature, output feature
+        self.fc1 = nn.Linear(16 * 5 * 5, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    # 값 계산
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 5)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+net = Net().to(device)
+#
+# net = VGG19().to(device)
 
 fn_loss = nn.CrossEntropyLoss().to(device)
 optim = optim.Adam(net.parameters(), lr=lr)
@@ -171,7 +193,8 @@ for epoch in range(num_epoch):
 print('Finish Training')
 
 # 학습한 모델 저장
-torch.save(net.state_dict(), os.path.join(data_dir, 'model'))
+PATH = './dataset/model/net.pth'
+torch.save(net.state_dict(), PATH)
 
 
 
