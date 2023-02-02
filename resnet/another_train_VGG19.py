@@ -9,8 +9,9 @@ import os
 
 # parameters
 lr = 1e-3
-num_epoch = 2
-batch_size = 4
+num_epoch = 50
+batch_size = 64
+
 
 # path
 data_dir = './dataset'
@@ -23,7 +24,7 @@ transform = transforms.Compose(
      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 #데이터 불러오기, 학습여부  o
-trainset = torchvision.datasets.CIFAR10(root='./dataset/train', train=True,
+trainset = torchvision.datasets.CIFAR100(root='./dataset/train', train=True,
                                         download=True, transform=transform)
 
 #학습용 셋은 섞어서 뽑기
@@ -31,8 +32,8 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 
 #클래스들
-classes = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+# classes = ('plane', 'car', 'bird', 'cat',
+#            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,63 +68,91 @@ class VGG19(nn.Module):
             layer += [nn.ReLU()]
 
             cbr = nn.Sequential(*layer)
+            # cbr = F.relu(nn.Conv2d(in_channels=in_channel, out_channel=out_channel, kernel_size=kernel_size, padding=padding, stride=stride, bias=bias))
 
             return cbr
-        self.conv1_1 = CBR2d(in_channel=3, out_channel=64)
-        self.conv1_2 = CBR2d(in_channel=64, out_channel=64)
-        self.pool1_3 = nn.MaxPool2d(kernel_size=2)
+        # self.conv1_1 = CBR2d(in_channel=3, out_channel=64)
+        # self.conv1_2 = CBR2d(in_channel=64, out_channel=64)
+        # self.pool1_3 = nn.MaxPool2d(kernel_size=2)
+        #
+        # self.conv2_1 = CBR2d(in_channel=64, out_channel=128)
+        # self.conv2_2 = CBR2d(in_channel=128, out_channel=128)
+        # self.pool2_3 = nn.MaxPool2d(kernel_size=2)
+        #
+        # self.conv3_1 = CBR2d(in_channel=128, out_channel=256)
+        # self.conv3_2 = CBR2d(in_channel=256, out_channel=256)
+        # self.conv3_3 = CBR2d(in_channel=256, out_channel=256)
+        # self.conv3_4 = CBR2d(in_channel=256, out_channel=256)
+        # self.pool3_5 = nn.MaxPool2d(kernel_size=2)
+        #
+        # self.conv4_1 = CBR2d(in_channel=256, out_channel=512)
+        # self.conv4_2 = CBR2d(in_channel=512, out_channel=512)
+        # self.conv4_3 = CBR2d(in_channel=512, out_channel=512)
+        # self.conv4_4 = CBR2d(in_channel=512, out_channel=512)
+        # self.pool4_5 = nn.MaxPool2d(kernel_size=2)
+        #
+        # self.fc1 = nn.Linear(512*2*2, 2048)
+        # self.fc2 = nn.Linear(2048, 1024)
+        # self.fc3 = nn.Linear(1024, 512)
+        # self.fc4 = nn.Linear(512, 256)
+        # self.fc5 = nn.Linear(256, 128)
+        # self.fc6 = nn.Linear(128, 64)
+        # self.fc7 = nn.Linear(64, 10)
+        #
+        # self.dp = nn.Dropout2d(0.5)
 
-        self.conv2_1 = CBR2d(in_channel=64, out_channel=128)
-        self.conv2_2 = CBR2d(in_channel=128, out_channel=128)
-        self.pool2_3 = nn.MaxPool2d(kernel_size=2)
+        self.conv1_1 = nn.Conv2d(3, 64, kernel_size=3, padding=1, stride=1)
+        self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, padding=1, stride=1)
+        self.bn1_1 = nn.BatchNorm2d(64)
+        self.bn1_2 = nn.BatchNorm2d(64)
 
-        self.conv3_1 = CBR2d(in_channel=128, out_channel=256)
-        self.conv3_2 = CBR2d(in_channel=256, out_channel=256)
-        self.conv3_3 = CBR2d(in_channel=256, out_channel=256)
-        self.conv3_4 = CBR2d(in_channel=256, out_channel=256)
-        self.pool3_5 = nn.MaxPool2d(kernel_size=2)
+        self.conv2_1 = nn.Conv2d(64, 128, kernel_size=3, padding=1, stride=1)
+        self.conv2_2 = nn.Conv2d(128, 128, kernel_size=3, padding=1, stride=1)
+        self.bn2_1 = nn.BatchNorm2d(128)
+        self.bn2_2 = nn.BatchNorm2d(128)
 
-        self.conv4_1 = CBR2d(in_channel=256, out_channel=512)
-        self.conv4_2 = CBR2d(in_channel=512, out_channel=512)
-        self.conv4_3 = CBR2d(in_channel=512, out_channel=512)
-        self.conv4_4 = CBR2d(in_channel=512, out_channel=512)
-        self.pool4_5 = nn.MaxPool2d(kernel_size=2)
 
-        self.fc1 = nn.Linear(512*2*2, 2048)
+        self.conv3_1 = nn.Conv2d(128, 256, kernel_size=3, padding=1, stride=1)
+        self.conv3_2 = nn.Conv2d(256, 256, kernel_size=3, padding=1, stride=1)
+        self.conv3_3 = nn.Conv2d(256, 256, kernel_size=3, padding=1, stride=1)
+        self.conv3_4 = nn.Conv2d(256, 256, kernel_size=3, padding=1, stride=1)
+        self.bn3_1 = nn.BatchNorm2d(256)
+        self.bn3_4 = nn.BatchNorm2d(256)
+
+
+        self.conv4_1 = nn.Conv2d(256, 512, kernel_size=3, padding=1, stride=1)
+        self.conv4_2 = nn.Conv2d(512, 512, kernel_size=3, padding=1, stride=1)
+        self.conv4_3 = nn.Conv2d(512, 512, kernel_size=3, padding=1, stride=1)
+        self.conv4_4 = nn.Conv2d(512, 512, kernel_size=3, padding=1, stride=1)
+        self.bn4 = nn.BatchNorm2d(512)
+
+        self.fc1 = nn.Linear(512 * 2 * 2, 2048)
         self.fc2 = nn.Linear(2048, 1024)
         self.fc3 = nn.Linear(1024, 512)
         self.fc4 = nn.Linear(512, 256)
         self.fc5 = nn.Linear(256, 128)
-        self.fc6 = nn.Linear(128, 64)
-        self.fc7 = nn.Linear(64, 10)
+        self.fc6 = nn.Linear(128, 100)
 
-        self.dp = nn.Dropout2d(0.5)
+        self.pool = nn.MaxPool2d(2, 2)
 
 
 
     def forward(self, x):
-        x = self.conv1_1(x)
-        x = self.conv1_2(x)
-        x = self.pool1_3(x)
+        x = F.relu(self.bn1_1(self.conv1_1(x)))
+        x = self.pool(F.relu(self.bn1_2(self.conv1_2(x))))
 
-        x = self.conv2_1(x)
-        x = self.conv2_2(x)
-        x = self.pool2_3(x)
-        x = self.dp(x)
+        x = F.relu(self.bn2_1(self.conv2_1(x)))
+        x = self.pool(F.relu(self.bn2_2(self.conv2_2(x))))
 
-        x = self.conv3_1(x)
-        x = self.conv3_2(x)
-        x = self.conv3_3(x)
-        x = self.conv3_4(x)
-        x = self.pool3_5(x)
-        x = self.dp(x)
+        x = F.relu(self.bn3_1(self.conv3_1(x)))
+        x = F.relu(self.bn3_1(self.conv3_2(x)))
+        x = F.relu(self.bn3_1(self.conv3_3(x)))
+        x = self.pool(F.relu(self.bn3_4(self.conv3_4(x))))
 
-        x = self.conv4_1(x)
-        x = self.conv4_2(x)
-        x = self.conv4_3(x)
-        x = self.conv4_4(x)
-        x = self.pool4_5(x)
-        x = self.dp(x)
+        x = F.relu(self.bn4(self.conv4_1(x)))
+        x = F.relu(self.bn4(self.conv4_2(x)))
+        x = F.relu(self.bn4(self.conv4_3(x)))
+        x = self.pool(F.relu(self.conv4_4(x)))
 
         # print(x.shape)
         x = x.view(-1, 512*2*2)
@@ -131,10 +160,8 @@ class VGG19(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
-        x = self.dp(x)
         x = F.relu(self.fc5(x))
-        x = F.relu(self.fc6(x))
-        x = F.relu(self.fc7(x))
+        x = self.fc6(x)
 
         return x
 
@@ -163,7 +190,7 @@ class Net(nn.Module):
         return x
 
 
-net = Net().to(device)
+net = VGG19().to(device)
 #
 # net = VGG19().to(device)
 
@@ -186,14 +213,14 @@ for epoch in range(num_epoch):
 
         # 결과 출력
         running_rate += loss.item()
-        if i % 2000 == 1999: # 2000개마다
-            print('[%d, %5d] loss: %.3f'%(epoch, i, running_rate/2000))
+        if i % 100 == 99: # 2000개마다
+            print('[%d, %5d] loss: %.3f'%(epoch, i, running_rate/100))
             running_rate = 0.0
 
 print('Finish Training')
 
 # 학습한 모델 저장
-PATH = './dataset/model/net.pth'
+PATH = './dataset/model/vgg19_cifar100.pth'
 torch.save(net.state_dict(), PATH)
 
 
