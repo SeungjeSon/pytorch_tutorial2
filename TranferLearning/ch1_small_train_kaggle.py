@@ -126,7 +126,7 @@ class Net(nn.Module):
         # self.bn
 
         self.fc1 = nn.Linear(128*9*9, 512)
-        self.fc2 = nn.Linear(512, 1)
+        self.fc2 = nn.Linear(512, 2)
 
     def forward(self, x):
         # print(x.shape)
@@ -148,7 +148,7 @@ class Net(nn.Module):
         # print(x.shape)
         x = x.view(-1, 128*9*9)
         x = F.relu(self.fc1(x))
-        x = F.sigmoid(self.fc2(x))
+        x = self.fc2(x)
 
         return x
 
@@ -160,7 +160,7 @@ val_dataset = datasets.ImageFolder(root=val_dir, transform=transform)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
 net = Net().to(device)
-fn_loss = nn.BCELoss().to(device)
+fn_loss = nn.CrossEntropyLoss().to(device)
 optim = optim.RMSprop(net.parameters(), lr=lr)
 
 for epoch in range(num_epoch):
@@ -169,13 +169,15 @@ for epoch in range(num_epoch):
     for i, data in enumerate(train_loader, 0):
         inputs, labels = data
         inputs = inputs.to(device)
-        labels = labels.unsqueeze(1)
+        # labels = labels.unsqueeze(1)      # BCELoss 일떄 사용
         labels = labels.to(device)
 
 
         optim.zero_grad()
         output = net(inputs)
-        loss = fn_loss(output.to(torch.float32), labels.to(torch.float32))
+        # loss = fn_loss(output.to(torch.float32), labels.to(torch.float32))        # BCELoss 일떄 사용
+
+        loss = fn_loss(output, labels)
         loss.backward()
         optim.step()
 
