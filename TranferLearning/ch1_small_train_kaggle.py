@@ -4,11 +4,21 @@ import torch.optim as optim
 import torchvision
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms, datasets
 
 import matplotlib.pyplot as plt
 import os, shutil
 import numpy as np
+
+
+""" 학습 파라미터 설정 """
+lr = 1e-4
+batch_size = 20
+num_epoch = 15
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
 
 
 """ Path """
@@ -17,10 +27,13 @@ base_dir = './dataset/dataset_small_kaggle'
 if not os.path.exists(base_dir):
     os.makedirs(base_dir)
 
+log_dir = os.path.join(base_dir, 'log')
 train_dir = os.path.join(base_dir, 'train')
 val_dir = os.path.join(base_dir, 'val')
 test_dir = os.path.join(base_dir, 'test')
 
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 if not os.path.exists(train_dir):
     os.makedirs(train_dir)
 if not os.path.exists(val_dir):
@@ -47,6 +60,7 @@ if not os.path.exists(test_cats_dir):
     os.makedirs(test_cats_dir)
 if not os.path.exists(test_dogs_dir):
     os.makedirs(test_dogs_dir)
+
 
 """ datasets 분활 """
 # cats
@@ -89,15 +103,6 @@ print("tran : {0}\t|\tval : {1}\t|\ttest : {2}".format(len(os.listdir(train_cats
 print()
 print("강아지 데이터셋")
 print("tran : {0}\t|\tval : {1}\t|\ttest : {2}".format(len(os.listdir(train_dogs_dir)), len(os.listdir(val_dogs_dir)), len(os.listdir(test_dogs_dir))))
-
-
-""" 학습 파라미터 설정 """
-lr = 1e-4
-batch_size = 20
-num_epoch = 30
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
 
 
 """ 네트워크 구축 """
@@ -162,10 +167,14 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_w
 net = Net().to(device)
 fn_loss = nn.CrossEntropyLoss().to(device)
 optim = optim.RMSprop(net.parameters(), lr=lr)
+writer = SummaryWriter(log_dir=log_dir)
 
 for epoch in range(num_epoch):
     net.train()
     runnung_rate = 0.0
+    loss_arr = []
+    acc_arr = []
+
     for i, data in enumerate(train_loader, 0):
         inputs, labels = data
         inputs = inputs.to(device)
@@ -181,10 +190,14 @@ for epoch in range(num_epoch):
         loss.backward()
         optim.step()
 
+
         runnung_rate += loss.item()
+        loss_arr += [loss.item()]
         if i % 10 == 9:
             print('[%d, %5d] loss: %.3f' % (epoch, i, runnung_rate/10))
             runnung_rate = 0.0
+
+    writer.add_scalar('loss', np.mean(loss_arr), epoch)
 
     correct = 0
     total = 0
@@ -199,7 +212,9 @@ for epoch in range(num_epoch):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+
         print('Accuracy of the network on the 500 test images: %d %%' % (100 * correct / total))
+    writer.add_scalar('acc', 100 * correct / total, epoch)
 
 
 
@@ -211,3 +226,5 @@ save_dir = './dataset/dataset_small_kaggle/model'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 torch.save(net.state_dict(), PATH)
+
+writer.close()
