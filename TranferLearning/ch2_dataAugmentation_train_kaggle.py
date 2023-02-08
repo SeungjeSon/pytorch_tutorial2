@@ -13,7 +13,7 @@ import numpy as np
 
 
 """ 학습 파라미터 설정 """
-lr = 1e-4
+lr = 1e-3
 batch_size = 50
 num_epoch = 30
 
@@ -178,7 +178,7 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_w
 
 net = Net().to(device)
 fn_loss = nn.CrossEntropyLoss().to(device)
-optim = optim.RMSprop(net.parameters(), lr=lr)
+optim = optim.Adam(net.parameters(), lr=lr)
 writer = SummaryWriter(log_dir=log_dir)
 
 for epoch in range(num_epoch):
