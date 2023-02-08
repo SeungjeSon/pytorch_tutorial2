@@ -14,8 +14,8 @@ import numpy as np
 
 """ 학습 파라미터 설정 """
 lr = 1e-4
-batch_size = 20
-num_epoch = 15
+batch_size = 50
+num_epoch = 30
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -124,7 +124,9 @@ class Net(nn.Module):
         # self.conv3 = CBR2d(in_channel=64, out_channel=128)
         # self.conv4 = CBR2d(in_channel=128, out_channel=128)
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1, stride=1)
+        self.conv1_1 = nn.Conv2d(32, 32, kernel_size=3, padding=1, stride=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1, stride=1)
+        self.conv2_2 = nn.Conv2d(64, 64, kernel_size=3, padding=1, stride=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1, stride=1)
         self.conv4 = nn.Conv2d(128, 128, kernel_size=3, padding=1, stride=1)
         self.pool = nn.MaxPool2d(kernel_size=2)
@@ -132,6 +134,10 @@ class Net(nn.Module):
 
         self.fc1 = nn.Linear(128*9*9, 512)
         self.fc2 = nn.Linear(512, 2)
+        # self.fc3 = nn.Linear(1024, 256)
+        # self.fc4 = nn.Linear(256, 64)
+        # self.fc5 = nn.Linear(64, 16)
+        # self.fc6 = nn.Linear(16, 2)
         self.dp = nn.Dropout(0.4)
 
     def forward(self, x):
@@ -153,18 +159,18 @@ class Net(nn.Module):
 
         # print(x.shape)
         x = x.view(-1, 128*9*9)
-        x = self.dp(x)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
 
         return x
 
 transform = transforms.Compose([transforms.Resize((150, 150)),
-                                transforms.RandomHorizontalFlip(p=0.5),
-                                transforms.RandomVerticalFlip(p=0.5),
-                                transforms.RandomAffine((-90, 90), translate=(0.2, 0.2)),
-                                transforms.RandomRotation(90),
-                                transforms.ToTensor()])
+                                transforms.RandomHorizontalFlip(p=0.2),
+                                transforms.RandomVerticalFlip(p=0.2),
+                                # transforms.RandomAffine((-90, 90), translate=(0.2, 0.2)),
+                                transforms.RandomRotation(45),
+                                transforms.ToTensor(),
+                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 train_dataset = datasets.ImageFolder(root=train_dir, transform=transform)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 val_dataset = datasets.ImageFolder(root=val_dir, transform=transform)
